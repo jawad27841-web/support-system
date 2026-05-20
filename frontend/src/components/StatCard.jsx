@@ -1,21 +1,44 @@
 const StatCard = ({ title, value, icon: Icon, color }) => {
   const colors = {
-    blue: { bg: 'bg-blue-50', icon: 'text-blue-600' },
-    orange: { bg: 'bg-orange-50', icon: 'text-orange-500' },
-    yellow: { bg: 'bg-yellow-50', icon: 'text-yellow-500' },
-    green: { bg: 'bg-green-50', icon: 'text-green-500' }
+    green: 'bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200',
+    blue: 'bg-gradient-to-br from-blue-50 to-cyan-50 border-2 border-blue-200',
+    orange: 'bg-gradient-to-br from-orange-50 to-red-50 border-2 border-orange-200',
+    yellow: 'bg-gradient-to-br from-yellow-50 to-amber-50 border-2 border-yellow-200'
+  }
+
+  const textColors = {
+    green: 'text-green-700',
+    blue: 'text-blue-700',
+    orange: 'text-orange-700',
+    yellow: 'text-yellow-700'
+  }
+
+  const iconColors = {
+    green: 'bg-green-200 text-green-700',
+    blue: 'bg-blue-200 text-blue-700',
+    orange: 'bg-orange-200 text-orange-700',
+    yellow: 'bg-yellow-200 text-yellow-700'
+  }
+
+  const valueColors = {
+    green: 'text-green-600',
+    blue: 'text-blue-600',
+    orange: 'text-orange-600',
+    yellow: 'text-yellow-600'
   }
 
   return (
-    <div className='bg-white rounded-xl p-4 border border-gray-200'>
-      <div className='flex items-center justify-between mb-3'>
-        <p className='text-xs text-gray-500'>{title}</p>
-        <div className={`w-8 h-8 ${colors[color].bg} rounded-lg flex items-center justify-center`}>
-          <Icon className={`text-sm ${colors[color].icon}`} />
+    <div className={`${colors[color] || colors.green} rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 animate-in fade-in`}>
+      <div className='flex items-start justify-between'>
+        <div className='flex-1'>
+          <p className={`${textColors[color]} text-sm font-bold uppercase tracking-wide`}>{title}</p>
+          <p className={`text-4xl font-black mt-3 ${valueColors[color]}`}>{value}</p>
+          <p className={`${textColors[color]} text-xs mt-2 opacity-70 font-semibold`}>+12.5% from last month</p>
+        </div>
+        <div className={`${iconColors[color] || iconColors.green} p-3 rounded-lg flex-shrink-0`}>
+          <Icon size={28} />
         </div>
       </div>
-      <p className='text-2xl font-bold text-gray-800'>{value}</p>
-      <p className='text-xs text-green-500 mt-1'>+12.5% from last month</p>
     </div>
   )
 }

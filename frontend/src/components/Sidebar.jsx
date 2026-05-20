@@ -68,10 +68,10 @@ const Sidebar = () => {
       </nav>
 
       {/* Theme Toggle */}
-      <div className={`px-4 py-4 border-t ${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-300 bg-gray-200'}`}>
+      <div className={`px-4 py-3 border-t ${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-300 bg-gray-200'}`}>
         <button
           onClick={() => setIsDark(!isDark)}
-          className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 ${
+          className={`w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-bold transition-all duration-300 transform hover:scale-105 ${
             isDark 
               ? 'bg-gray-700 text-yellow-300 hover:bg-gray-600' 
               : 'bg-blue-400 text-white hover:bg-blue-500'
@@ -79,13 +79,13 @@ const Sidebar = () => {
         >
           {isDark ? (
             <>
-              <FiSun size={18} />
-              <span className='text-xs'>Light</span>
+              <FiSun size={16} />
+              <span className='text-xs font-semibold'>Light</span>
             </>
           ) : (
             <>
-              <FiMoon size={18} />
-              <span className='text-xs'>Dark</span>
+              <FiMoon size={16} />
+              <span className='text-xs font-semibold'>Dark</span>
             </>
           )}
         </button>
@@ -107,7 +107,7 @@ const Sidebar = () => {
 
         <button
           onClick={logout}
-          className='w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 transform hover:scale-105 transition-all duration-300 shadow-lg'
+          className='w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg text-sm font-bold text-white bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 transform hover:scale-105 transition-all duration-300 shadow-lg'
         >
           <FiLogOut size={18} />
           Logout

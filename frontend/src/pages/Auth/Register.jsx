@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { FiMail, FiLock, FiUser, FiEye, FiEyeOff } from 'react-icons/fi'
+import { FiMail, FiLock, FiUser, FiEye, FiEyeOff, FiShield } from 'react-icons/fi'
 import useAuth from '../../hooks/useAuth.js'
 
 const Register = () => {
@@ -34,7 +34,7 @@ const Register = () => {
     e.preventDefault()
 
     if (form.password !== form.confirmPassword) {
-      alert('Passwords do not match')
+      alert('❌ Passwords do not match')
       return
     }
 
@@ -44,180 +44,279 @@ const Register = () => {
       password: form.password,
       role: form.role
     })
-
-    // optional redirect after success
-    // navigate('/login')
   }
 
   return (
-    <div className='min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-green-900 to-emerald-800 p-4'>
+    <div className='min-h-screen flex overflow-hidden'>
 
-      <div className='w-full max-w-5xl grid lg:grid-cols-2 bg-white rounded-3xl shadow-2xl overflow-hidden'>
+      {/* LEFT SIDE */}
+      <div className='hidden lg:flex lg:w-1/2 bg-gradient-to-br from-slate-900 via-green-900 to-emerald-900 text-white relative overflow-hidden'>
 
-        {/* LEFT SIDE */}
-        <div className='hidden lg:flex flex-col justify-center items-center bg-gradient-to-br from-green-600 to-emerald-600 text-white p-10'>
+        {/* Background Effects */}
+        <div className='absolute -top-20 -left-20 w-96 h-96 bg-green-500/20 rounded-full blur-3xl'></div>
+        <div className='absolute bottom-0 right-0 w-[28rem] h-[28rem] bg-emerald-400/10 rounded-full blur-3xl'></div>
 
-          <h1 className='text-4xl font-bold mb-4'>Support Ticket System</h1>
+        <div className='relative z-10 flex flex-col justify-center px-20'>
 
-          <p className='text-center text-green-100 mb-6'>
-            Join our platform to manage customer support tickets efficiently
-            and professionally.
+          {/* Logo */}
+          <div className='mb-8'>
+            <div className='w-20 h-20 rounded-2xl bg-white/10 border border-white/20 backdrop-blur-md flex items-center justify-center shadow-xl'>
+              <FiShield className='text-4xl text-emerald-300' />
+            </div>
+          </div>
+
+          {/* Title */}
+          <h1 className='text-5xl font-extrabold leading-tight mb-6 tracking-tight'>
+            Join Our
+            <br />
+            Support
+            <br />
+            Platform
+          </h1>
+
+          {/* Description */}
+          <p className='text-gray-300 text-base leading-relaxed max-w-md'>
+            Create an account to manage tickets, track issues in real-time,
+            and collaborate with your team seamlessly.
           </p>
 
-          <img
-            src='https://illustrations.popsy.co/green/customer-support.svg'
-            alt='support'
-            className='w-80'
-          />
+          {/* Stats */}
+          <div className='mt-10 flex gap-10'>
+
+            <div>
+              <h2 className='text-3xl font-bold text-emerald-300'>1000+</h2>
+              <p className='text-gray-400 text-sm'>Active Users</p>
+            </div>
+
+            <div>
+              <h2 className='text-3xl font-bold text-emerald-300'>99.9%</h2>
+              <p className='text-gray-400 text-sm'>Uptime</p>
+            </div>
+
+            <div>
+              <h2 className='text-3xl font-bold text-emerald-300'>24/7</h2>
+              <p className='text-gray-400 text-sm'>Support</p>
+            </div>
+
+          </div>
 
         </div>
+      </div>
 
-        {/* RIGHT SIDE */}
-        <div className='p-10'>
+      {/* RIGHT SIDE */}
+      <div className='flex-1 bg-gray-100 flex items-center justify-center p-6 relative'>
 
-          {/* HEADER */}
-          <h2 className='text-3xl font-bold text-gray-800 mb-2'>
-            Create Account
-          </h2>
+        {/* Background blur */}
+        <div className='absolute top-0 left-0 w-72 h-72 bg-green-300 rounded-full blur-3xl opacity-20'></div>
+        <div className='absolute bottom-0 right-0 w-72 h-72 bg-emerald-300 rounded-full blur-3xl opacity-20'></div>
 
-          <p className='text-gray-500 mb-6'>
-            Sign up to get started
-          </p>
+        {/* REGISTER CARD */}
+        <div className='relative z-10 w-full max-w-md'>
 
-          {/* ERROR */}
-          {error && (
-            <div className='bg-red-50 text-red-600 p-3 rounded-lg mb-4 text-sm'>
-              {error}
-            </div>
-          )}
+          <div className='bg-white rounded-3xl shadow-2xl border border-gray-200 p-10'>
 
-          {/* FORM */}
-          <form onSubmit={handleSubmit} className='space-y-4'>
+            {/* HEADER */}
+            <div className='text-center mb-8'>
 
-            {/* NAME */}
-            <div>
-              <label className='text-sm font-semibold'>Full Name</label>
-              <div className='relative mt-1'>
-                <FiUser className='absolute left-3 top-3 text-gray-400' />
-                <input
-                  type='text'
-                  name='name'
-                  value={form.name}
-                  onChange={handleChange}
-                  required
-                  className='w-full border rounded-lg pl-10 pr-3 py-2 focus:ring-2 focus:ring-green-400 outline-none'
-                  placeholder='Enter name'
-                />
-              </div>
-            </div>
-
-            {/* EMAIL */}
-            <div>
-              <label className='text-sm font-semibold'>Email</label>
-              <div className='relative mt-1'>
-                <FiMail className='absolute left-3 top-3 text-gray-400' />
-                <input
-                  type='email'
-                  name='email'
-                  value={form.email}
-                  onChange={handleChange}
-                  required
-                  className='w-full border rounded-lg pl-10 pr-3 py-2 focus:ring-2 focus:ring-green-400 outline-none'
-                  placeholder='example@gmail.com'
-                />
-              </div>
-            </div>
-
-            {/* PASSWORD */}
-            <div>
-              <label className='text-sm font-semibold'>Password</label>
-              <div className='relative mt-1'>
-                <FiLock className='absolute left-3 top-3 text-gray-400' />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  name='password'
-                  value={form.password}
-                  onChange={handleChange}
-                  required
-                  className='w-full border rounded-lg pl-10 pr-10 py-2 focus:ring-2 focus:ring-green-400 outline-none'
-                  placeholder='Password'
-                />
-                <button
-                  type='button'
-                  onClick={() => setShowPassword(!showPassword)}
-                  className='absolute right-3 top-2.5 text-gray-500'
-                >
-                  {showPassword ? <FiEyeOff /> : <FiEye />}
-                </button>
-              </div>
-            </div>
-
-            {/* CONFIRM PASSWORD */}
-            <div>
-              <label className='text-sm font-semibold'>Confirm Password</label>
-              <div className='relative mt-1'>
-                <FiLock className='absolute left-3 top-3 text-gray-400' />
-                <input
-                  type={showConfirm ? 'text' : 'password'}
-                  name='confirmPassword'
-                  value={form.confirmPassword}
-                  onChange={handleChange}
-                  required
-                  className={`w-full border rounded-lg pl-10 pr-10 py-2 outline-none focus:ring-2 ${
-                    passwordMatch ? 'focus:ring-green-400' : 'border-red-400 focus:ring-red-400'
-                  }`}
-                  placeholder='Confirm password'
-                />
-                <button
-                  type='button'
-                  onClick={() => setShowConfirm(!showConfirm)}
-                  className='absolute right-3 top-2.5 text-gray-500'
-                >
-                  {showConfirm ? <FiEyeOff /> : <FiEye />}
-                </button>
+              <div className='w-16 h-16 mx-auto bg-gradient-to-r from-green-600 to-emerald-600 rounded-2xl flex items-center justify-center shadow-lg mb-5'>
+                <FiUser className='text-white text-3xl' />
               </div>
 
-              {!passwordMatch && form.confirmPassword && (
-                <p className='text-red-500 text-xs mt-1'>
-                  Passwords do not match
-                </p>
-              )}
+              <h2 className='text-3xl font-extrabold text-gray-800'>
+                Create Account
+              </h2>
+
+              <p className='text-gray-500 mt-2'>
+                Sign up to get started with Support Ticket System
+              </p>
+
             </div>
 
-            {/* ROLE */}
-            <div>
-              <label className='text-sm font-semibold'>Role</label>
-              <select
-                name='role'
-                value={form.role}
-                onChange={handleChange}
-                className='w-full border rounded-lg px-3 py-2 mt-1'
+            {/* ERROR */}
+            {error && (
+              <div className='mb-5 bg-red-50 border border-red-200 text-red-700 p-4 rounded-xl text-sm font-medium'>
+                ❌ {error}
+              </div>
+            )}
+
+            {/* FORM */}
+            <form onSubmit={handleSubmit} className='space-y-5'>
+
+              {/* NAME */}
+              <div>
+                <label className='block text-sm font-semibold text-gray-700 mb-2'>
+                  Full Name
+                </label>
+
+                <div className='relative'>
+                  <FiUser className='absolute left-4 top-1/2 -translate-y-1/2 text-gray-400' />
+
+                  <input
+                    type='text'
+                    name='name'
+                    required
+                    placeholder='John Doe'
+                    value={form.name}
+                    onChange={handleChange}
+                    className='w-full border-2 border-gray-200 rounded-xl pl-12 pr-4 py-3 focus:outline-none focus:border-green-500 focus:ring-4 focus:ring-green-100 transition'
+                  />
+                </div>
+              </div>
+
+              {/* EMAIL */}
+              <div>
+                <label className='block text-sm font-semibold text-gray-700 mb-2'>
+                  Email Address
+                </label>
+
+                <div className='relative'>
+                  <FiMail className='absolute left-4 top-1/2 -translate-y-1/2 text-gray-400' />
+
+                  <input
+                    type='email'
+                    name='email'
+                    required
+                    placeholder='example@gmail.com'
+                    value={form.email}
+                    onChange={handleChange}
+                    className='w-full border-2 border-gray-200 rounded-xl pl-12 pr-4 py-3 focus:outline-none focus:border-green-500 focus:ring-4 focus:ring-green-100 transition'
+                  />
+                </div>
+              </div>
+
+              {/* PASSWORD */}
+              <div>
+                <label className='block text-sm font-semibold text-gray-700 mb-2'>
+                  Password
+                </label>
+
+                <div className='relative'>
+                  <FiLock className='absolute left-4 top-1/2 -translate-y-1/2 text-gray-400' />
+
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    name='password'
+                    required
+                    placeholder='Create a strong password'
+                    value={form.password}
+                    onChange={handleChange}
+                    className='w-full border-2 border-gray-200 rounded-xl pl-12 pr-12 py-3 focus:outline-none focus:border-green-500 focus:ring-4 focus:ring-green-100 transition'
+                  />
+
+                  <button
+                    type='button'
+                    onClick={() => setShowPassword(!showPassword)}
+                    className='absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-green-600 transition'
+                  >
+                    {showPassword ? <FiEyeOff size={20} /> : <FiEye size={20} />}
+                  </button>
+                </div>
+              </div>
+
+              {/* CONFIRM PASSWORD */}
+              <div>
+                <label className='block text-sm font-semibold text-gray-700 mb-2'>
+                  Confirm Password
+                </label>
+
+                <div className='relative'>
+                  <FiLock className='absolute left-4 top-1/2 -translate-y-1/2 text-gray-400' />
+
+                  <input
+                    type={showConfirm ? 'text' : 'password'}
+                    name='confirmPassword'
+                    required
+                    placeholder='Confirm your password'
+                    value={form.confirmPassword}
+                    onChange={handleChange}
+                    className={`w-full border-2 rounded-xl pl-12 pr-12 py-3 focus:outline-none focus:ring-4 transition ${
+                      !passwordMatch && form.confirmPassword
+                        ? 'border-red-500 focus:border-red-500 focus:ring-red-100'
+                        : 'border-gray-200 focus:border-green-500 focus:ring-green-100'
+                    }`}
+                  />
+
+                  <button
+                    type='button'
+                    onClick={() => setShowConfirm(!showConfirm)}
+                    className='absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-green-600 transition'
+                  >
+                    {showConfirm ? <FiEyeOff size={20} /> : <FiEye size={20} />}
+                  </button>
+                </div>
+
+                {!passwordMatch && form.confirmPassword && (
+                  <p className='text-red-600 text-sm font-semibold mt-2'>
+                    ❌ Passwords do not match
+                  </p>
+                )}
+              </div>
+
+              {/* ROLE */}
+              <div>
+                <label className='block text-sm font-semibold text-gray-700 mb-2'>
+                  Account Type
+                </label>
+
+                <div className='grid grid-cols-3 gap-3'>
+                  {[
+                    { value: 'user', label: '👤 User', color: 'green' },
+                    { value: 'agent', label: '👨‍💼 Agent', color: 'blue' },
+                    { value: 'admin', label: '🔐 Admin', color: 'red' }
+                  ].map((role) => (
+                    <button
+                      key={role.value}
+                      type='button'
+                      onClick={() => setForm({ ...form, role: role.value })}
+                      className={`p-3 rounded-xl font-semibold transition border-2 text-sm ${
+                        form.role === role.value
+                          ? role.color === 'green'
+                            ? 'border-green-500 bg-green-50 text-green-700'
+                            : role.color === 'blue'
+                            ? 'border-blue-500 bg-blue-50 text-blue-700'
+                            : 'border-red-500 bg-red-50 text-red-700'
+                          : 'border-gray-300 text-gray-600 hover:border-gray-400'
+                      }`}
+                    >
+                      {role.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* BUTTON */}
+              <button
+                type='submit'
+                disabled={loading || !passwordMatch}
+                className='w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white py-3 rounded-xl font-bold hover:shadow-xl hover:scale-[1.02] transition disabled:opacity-50 disabled:cursor-not-allowed'
               >
-                <option value='user'>User</option>
-                <option value='agent'>Agent</option>
-                <option value='admin'>Admin</option>
-              </select>
+                {loading ? (
+                  <span className='flex items-center justify-center gap-2'>
+                    <div className='w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin'></div>
+                    Creating Account...
+                  </span>
+                ) : (
+                  '✨ Create Account'
+                )}
+              </button>
+
+            </form>
+
+            {/* FOOTER */}
+            <p className='text-center text-gray-500 text-sm mt-8'>
+              Already have an account?
+            </p>
+
+            <div className='text-center mt-2'>
+              <Link
+                to='/login'
+                className='text-green-600 font-semibold hover:text-green-700 transition'
+              >
+                Sign in here
+              </Link>
             </div>
 
-            {/* BUTTON */}
-            <button
-              type='submit'
-              disabled={loading || !passwordMatch}
-              className='w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition'
-            >
-              {loading ? 'Creating Account...' : 'Register'}
-            </button>
-
-          </form>
-
-          {/* LOGIN LINK */}
-          <p className='text-sm text-center mt-6'>
-            Already have an account?{' '}
-            <Link to='/login' className='text-green-600 font-semibold'>
-              Login
-            </Link>
-          </p>
-
+          </div>
         </div>
       </div>
     </div>

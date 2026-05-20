@@ -1,73 +1,161 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { FiList, FiClock, FiCheckCircle, FiAlertCircle, FiPlus, FiTrendingUp } from 'react-icons/fi'
-import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
-import API from '../../api/axios.js'
 import Sidebar from '../../components/Sidebar.jsx'
-import StatCard from '../../components/StatCard.jsx'
 import StatusBadge from '../../components/StatusBadge.jsx'
-import useAuth from '../../hooks/useAuth.js'
-import useRole from '../../hooks/useRole.js'
+import API from '../../api/axios.js'
 import Loader from '../../components/Loader.jsx'
+import { FiSearch, FiEdit2, FiDownload, FiRefreshCw, FiTrash2 } from 'react-icons/fi'
+import { PieChart, Pie, Cell, BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 
-const Dashboard = () => {
-  const { user } = useAuth()
-  const { isAdmin } = useRole()
-  const [stats, setStats] = useState(null)
+const SuperPanel = () => {
   const [tickets, setTickets] = useState([])
+  const [users, setUsers] = useState([])
+  const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState('')
+  const [editingId, setEditingId] = useState(null)
+  const [newStatus, setNewStatus] = useState('')
+  const [activeTab, setActiveTab] = useState('tickets')
+
+  const fetchData = async () => {
+    try {
+      setLoading(true)
+      
+      const dashRes = await API.get('/dashboard/admin')
+      setStats(dashRes.data.stats)
+
+      const ticketsRes = await API.get('/tickets', { 
+        params: { 
+          limit: 200,
+          ...(search && { search }),
+          ...(statusFilter && { status: statusFilter })
+        } 
+      })
+      setTickets(ticketsRes.data.tickets || [])
+
+      const usersRes = await API.get('/users')
+      setUsers(usersRes.data.users || [])
+    } catch (error) {
+      console.log(error)
+      alert('❌ Error loading data')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
-    const fetchData = async () => {
+    fetchData()
+  }, [search, statusFilter])
+
+  // UPDATE - Status Change
+  const handleStatusChange = async (ticketId) => {
+    if (!newStatus) {
+      alert('❌ Please select a status')
+      return
+    }
+    try {
+      console.log('Updating ticket:', ticketId, 'Status:', newStatus)
+      await API.put(`/tickets/${ticketId}`, { status: newStatus })
+      
+      setTickets(tickets.map(t => 
+        t.id === ticketId ? { ...t, status: newStatus } : t
+      ))
+      
+      setEditingId(null)
+      setNewStatus('')
+      alert('✅ Status updated successfully!')
+      fetchData() // Refresh data
+    } catch (error) {
+      console.error('Error:', error)
+      alert('❌ Error updating status: ' + error.message)
+    }
+  }
+
+  // DELETE - Remove Ticket
+  const handleDeleteTicket = async (ticketId) => {
+    if (window.confirm('⚠️ کیا آپ یہ ticket permanently delete کرنا چاہتے ہیں؟')) {
       try {
-        setLoading(true)
-
-        const endpoint = isAdmin ? '/dashboard/admin' : '/dashboard/user'
-        const res = await API.get(endpoint)
-
-        setStats(res.data.stats)
-        
-        if (isAdmin) {
-          setTickets(res.data.recentTickets || [])
-        } else {
-          setTickets(res.data.myRecentTickets || [])
-        }
-
+        await API.delete(`/tickets/${ticketId}`)
+        setTickets(tickets.filter(t => t.id !== ticketId))
+        alert('✅ Ticket deleted successfully!')
       } catch (error) {
-        console.error('Error fetching dashboard:', error)
-      } finally {
-        setLoading(false)
+        alert('❌ Error deleting ticket: ' + error.message)
       }
     }
+  }
 
-    if (user) {
-      fetchData()
-    }
-  }, [isAdmin, user])
+  const downloadReport = () => {
+    const report = `
+╔════════════════════════════════════════════════════════════╗
+║     SUPPORT DESK - SYSTEM REPORT                          ║
+║     Group 11: Jawad Ahmed & Ghulam Husnain               ║
+╚════════════════════════════════════════════════════════════╝
+
+📅 Generated: ${new Date().toLocaleDateString('en-PK')} ${new Date().toLocaleTimeString()}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📊 TICKET STATISTICS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Total Tickets:           ${stats?.totalTickets || 0}
+🔴 Pending (Open):       ${stats?.openTickets || 0}
+🟡 In Progress:          ${stats?.inProgressTickets || 0}
+✅ Resolved:             ${stats?.resolvedTickets || 0}
+
+📈 Completion Rate:      ${stats?.totalTickets ? Math.round((stats.resolvedTickets / stats.totalTickets) * 100) : 0}%
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+👥 USER INFORMATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Total Users:             ${users.length}
+🔴 Admins:               ${users.filter(u => u.role === 'admin').length}
+🔵 Agents:               ${users.filter(u => u.role === 'agent').length}
+🟢 Regular Users:        ${users.filter(u => u.role === 'user').length}
+✅ Active Users:         ${users.filter(u => u.is_active).length}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📋 TOP 15 TICKETS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+${tickets.slice(0, 15).map((t, i) => `${i+1}. [${t.status.toUpperCase()}] ${t.title} (ID: ${t.id})`).join('\n')}
+
+═══════════════════════════════════════════════════════════════
+Report Generated by Support Desk System
+Complaint & Support Ticket Management System v1.0
+    `.trim()
+
+    const element = document.createElement('a')
+    element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(report))
+    element.setAttribute('download', `support-report-${new Date().getTime()}.txt`)
+    element.style.display = 'none'
+    document.body.appendChild(element)
+    element.click()
+    document.body.removeChild(element)
+  }
 
   if (loading) return <Loader />
 
-  // Data for Charts
-  const statusData = [
-    { name: '🔴 Pending', value: isAdmin ? stats?.openTickets || 0 : stats?.myOpen || 0, fill: '#EF4444' },
-    { name: '🟡 Progress', value: isAdmin ? stats?.inProgressTickets || 0 : stats?.myInProgress || 0, fill: '#F59E0B' },
-    { name: '✅ Resolved', value: isAdmin ? stats?.resolvedTickets || 0 : stats?.myResolved || 0, fill: '#10B981' }
+  const statusChartData = [
+    { name: '🔴 Pending', value: stats?.openTickets || 0, fill: '#EF4444' },
+    { name: '🟡 Progress', value: stats?.inProgressTickets || 0, fill: '#F59E0B' },
+    { name: '✅ Resolved', value: stats?.resolvedTickets || 0, fill: '#10B981' }
   ]
 
-  const trendData = [
-    { day: 'Mon', tickets: 4 },
-    { day: 'Tue', tickets: 3 },
-    { day: 'Wed', tickets: 5 },
-    { day: 'Thu', tickets: 6 },
-    { day: 'Fri', tickets: 8 },
-    { day: 'Sat', tickets: 4 },
-    { day: 'Sun', tickets: 2 }
+  const userRoleData = [
+    { name: 'Admin', value: users.filter(u => u.role === 'admin').length, fill: '#DC2626' },
+    { name: 'Agent', value: users.filter(u => u.role === 'agent').length, fill: '#3B82F6' },
+    { name: 'User', value: users.filter(u => u.role === 'user').length, fill: '#10B981' }
   ]
 
-  const priorityData = [
-    { name: 'High', value: Math.ceil((isAdmin ? stats?.openTickets || 0 : stats?.myOpen || 0) * 0.3), fill: '#DC2626' },
-    { name: 'Medium', value: Math.ceil((isAdmin ? stats?.openTickets || 0 : stats?.myOpen || 0) * 0.5), fill: '#F59E0B' },
-    { name: 'Low', value: Math.ceil((isAdmin ? stats?.openTickets || 0 : stats?.myOpen || 0) * 0.2), fill: '#10B981' }
+  const weeklyData = [
+    { day: 'Mon', open: 5, resolved: 2, progress: 3 },
+    { day: 'Tue', open: 4, resolved: 3, progress: 2 },
+    { day: 'Wed', open: 6, resolved: 4, progress: 2 },
+    { day: 'Thu', open: 7, resolved: 5, progress: 2 },
+    { day: 'Fri', open: 8, resolved: 6, progress: 2 },
+    { day: 'Sat', open: 3, resolved: 2, progress: 1 },
+    { day: 'Sun', open: 2, resolved: 1, progress: 1 }
   ]
 
   return (
@@ -75,73 +163,62 @@ const Dashboard = () => {
       <Sidebar />
       <div className='flex-1 flex flex-col'>
         {/* Header */}
-        <div className='bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-8 shadow-lg'>
-          <div className='flex items-center justify-between'>
+        <div className='bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 text-white px-8 py-8 sticky top-0 z-10 shadow-2xl'>
+          <div className='flex justify-between items-center'>
             <div className='animate-in slide-in-from-left duration-700'>
-              <h1 className='text-3xl font-bold mb-2'>Welcome, {user?.name} 👋</h1>
-              <p className='text-blue-100'>
-                {isAdmin ? '🔐 Admin Dashboard' : '📊 User Dashboard'}
-              </p>
+              <h1 className='text-4xl font-bold'>🎛️ Super Admin Panel</h1>
+              <p className='text-green-100 text-sm mt-1'>Complete System Management & Reporting</p>
             </div>
-            <div className='animate-in slide-in-from-right duration-700'>
-              <div className='text-right'>
-                <p className='text-blue-100 text-sm'>Total Tickets</p>
-                <p className='text-4xl font-bold'>{isAdmin ? stats?.totalTickets || 0 : stats?.myTotal || 0}</p>
-              </div>
+            <div className='flex gap-3 animate-in slide-in-from-right duration-700'>
+              <button
+                onClick={fetchData}
+                className='flex items-center gap-2 bg-white/20 text-white px-4 py-2 rounded-lg hover:bg-white/30 transition-all duration-300 font-bold'
+              >
+                <FiRefreshCw /> Refresh
+              </button>
+              <button
+                onClick={downloadReport}
+                className='flex items-center gap-2 bg-white text-green-600 px-4 py-2 rounded-lg hover:bg-gray-100 hover:shadow-lg transform hover:scale-105 transition-all duration-300 font-bold'
+              >
+                <FiDownload /> Report
+              </button>
             </div>
           </div>
         </div>
 
-        {/* Main Content */}
-        <div className='flex-1 p-6 overflow-y-auto'>
-          {/* Stats Cards */}
-          <div className='grid grid-cols-4 gap-4 mb-8 animate-in fade-in duration-700'>
-            <div className='animate-in slide-in-from-left duration-700 [animation-delay:0ms]'>
-              <StatCard 
-                title='Total' 
-                value={isAdmin ? stats?.totalTickets || 0 : stats?.myTotal || 0} 
-                icon={FiList} 
-                color='blue' 
-              />
+        <div className='flex-1 p-8 overflow-y-auto'>
+          {/* Quick Stats */}
+          <div className='grid grid-cols-5 gap-4 mb-8 animate-in fade-in duration-700'>
+            <div className='bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border-2 border-green-200 p-6 shadow-lg hover:shadow-xl transition-all text-center transform hover:scale-105 duration-300'>
+              <p className='text-green-700 text-sm font-bold'>Total Tickets</p>
+              <p className='text-4xl font-bold text-green-600 mt-3'>{stats?.totalTickets || 0}</p>
             </div>
-            <div className='animate-in slide-in-from-left duration-700 [animation-delay:100ms]'>
-              <StatCard 
-                title='Pending' 
-                value={isAdmin ? stats?.openTickets || 0 : stats?.myOpen || 0} 
-                icon={FiAlertCircle} 
-                color='orange' 
-              />
+            <div className='bg-gradient-to-br from-red-50 to-red-100 rounded-xl border-2 border-red-200 p-6 shadow-lg hover:shadow-xl transition-all text-center transform hover:scale-105 duration-300'>
+              <p className='text-red-700 text-sm font-bold'>🔴 Pending</p>
+              <p className='text-4xl font-bold text-red-600 mt-3'>{stats?.openTickets || 0}</p>
             </div>
-            <div className='animate-in slide-in-from-left duration-700 [animation-delay:200ms]'>
-              <StatCard 
-                title='In Progress' 
-                value={isAdmin ? stats?.inProgressTickets || 0 : stats?.myInProgress || 0} 
-                icon={FiClock} 
-                color='yellow' 
-              />
+            <div className='bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl border-2 border-yellow-200 p-6 shadow-lg hover:shadow-xl transition-all text-center transform hover:scale-105 duration-300'>
+              <p className='text-yellow-700 text-sm font-bold'>🟡 Progress</p>
+              <p className='text-4xl font-bold text-yellow-600 mt-3'>{stats?.inProgressTickets || 0}</p>
             </div>
-            <div className='animate-in slide-in-from-left duration-700 [animation-delay:300ms]'>
-              <StatCard 
-                title='Resolved' 
-                value={isAdmin ? stats?.resolvedTickets || 0 : stats?.myResolved || 0} 
-                icon={FiCheckCircle} 
-                color='green' 
-              />
+            <div className='bg-gradient-to-br from-emerald-50 to-green-100 rounded-xl border-2 border-emerald-200 p-6 shadow-lg hover:shadow-xl transition-all text-center transform hover:scale-105 duration-300'>
+              <p className='text-emerald-700 text-sm font-bold'>✅ Resolved</p>
+              <p className='text-4xl font-bold text-emerald-600 mt-3'>{stats?.resolvedTickets || 0}</p>
+            </div>
+            <div className='bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl border-2 border-blue-200 p-6 shadow-lg hover:shadow-xl transition-all text-center transform hover:scale-105 duration-300'>
+              <p className='text-blue-700 text-sm font-bold'>👥 Users</p>
+              <p className='text-4xl font-bold text-blue-600 mt-3'>{users.length}</p>
             </div>
           </div>
 
           {/* Charts Section */}
           <div className='grid grid-cols-3 gap-6 mb-8'>
-            {/* Pie Chart - Status Distribution */}
-            <div className='bg-white rounded-xl border border-gray-200 p-6 shadow-lg hover:shadow-xl transition-all duration-300 animate-in fade-in slide-in-from-bottom duration-700'>
-              <h3 className='text-lg font-bold text-gray-800 mb-4 flex items-center gap-2'>
-                <FiTrendingUp className='text-blue-600' />
-                Status Distribution
-              </h3>
+            <div className='bg-white rounded-xl border-2 border-gray-200 p-6 shadow-lg'>
+              <h3 className='text-lg font-bold text-gray-800 mb-4'>📊 Ticket Status</h3>
               <ResponsiveContainer width='100%' height={250}>
                 <PieChart>
                   <Pie
-                    data={statusData}
+                    data={statusChartData}
                     cx='50%'
                     cy='50%'
                     labelLine={false}
@@ -150,7 +227,7 @@ const Dashboard = () => {
                     fill='#8884d8'
                     dataKey='value'
                   >
-                    {statusData.map((entry, index) => (
+                    {statusChartData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.fill} />
                     ))}
                   </Pie>
@@ -159,240 +236,253 @@ const Dashboard = () => {
               </ResponsiveContainer>
             </div>
 
-            {/* Line Chart - Weekly Trend */}
-            <div className='bg-white rounded-xl border border-gray-200 p-6 shadow-lg hover:shadow-xl transition-all duration-300 animate-in fade-in slide-in-from-bottom duration-700 [animation-delay:100ms]'>
-              <h3 className='text-lg font-bold text-gray-800 mb-4 flex items-center gap-2'>
-                <FiTrendingUp className='text-green-600' />
-                Weekly Trend
-              </h3>
+            <div className='bg-white rounded-xl border-2 border-gray-200 p-6 shadow-lg'>
+              <h3 className='text-lg font-bold text-gray-800 mb-4'>👥 User Roles</h3>
               <ResponsiveContainer width='100%' height={250}>
-                <LineChart data={trendData}>
-                  <CartesianGrid strokeDasharray='3 3' stroke='#e5e7eb' />
-                  <XAxis dataKey='day' stroke='#9ca3af' />
-                  <YAxis stroke='#9ca3af' />
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px' }}
-                  />
-                  <Line 
-                    type='monotone' 
-                    dataKey='tickets' 
-                    stroke='#10B981' 
-                    strokeWidth={3}
-                    dot={{ fill: '#10B981', r: 5 }}
-                    activeDot={{ r: 7 }}
-                    animationDuration={1000}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-
-            {/* Bar Chart - Priority Distribution */}
-            <div className='bg-white rounded-xl border border-gray-200 p-6 shadow-lg hover:shadow-xl transition-all duration-300 animate-in fade-in slide-in-from-bottom duration-700 [animation-delay:200ms]'>
-              <h3 className='text-lg font-bold text-gray-800 mb-4 flex items-center gap-2'>
-                <FiTrendingUp className='text-red-600' />
-                Priority Breakdown
-              </h3>
-              <ResponsiveContainer width='100%' height={250}>
-                <BarChart data={priorityData}>
-                  <CartesianGrid strokeDasharray='3 3' stroke='#e5e7eb' />
-                  <XAxis dataKey='name' stroke='#9ca3af' />
-                  <YAxis stroke='#9ca3af' />
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px' }}
-                  />
-                  <Bar 
-                    dataKey='value' 
-                    fill='#3B82F6'
-                    radius={[8, 8, 0, 0]}
-                    animationDuration={1000}
-                  >
-                    {priorityData.map((entry, index) => (
+                <BarChart data={userRoleData}>
+                  <CartesianGrid strokeDasharray='3 3' />
+                  <XAxis dataKey='name' />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey='value' fill='#3B82F6' radius={[8, 8, 0, 0]}>
+                    {userRoleData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.fill} />
                     ))}
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
+
+            <div className='bg-white rounded-xl border-2 border-gray-200 p-6 shadow-lg'>
+              <h3 className='text-lg font-bold text-gray-800 mb-4'>📈 Weekly Trend</h3>
+              <ResponsiveContainer width='100%' height={250}>
+                <LineChart data={weeklyData}>
+                  <CartesianGrid strokeDasharray='3 3' />
+                  <XAxis dataKey='day' />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Line type='monotone' dataKey='open' stroke='#EF4444' strokeWidth={2} />
+                  <Line type='monotone' dataKey='progress' stroke='#F59E0B' strokeWidth={2} />
+                  <Line type='monotone' dataKey='resolved' stroke='#10B981' strokeWidth={2} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
           </div>
 
-          {/* Recent Tickets Table */}
-          <div className='bg-white rounded-xl border border-gray-200 shadow-lg hover:shadow-xl transition-all duration-300 animate-in fade-in duration-700 [animation-delay:300ms]'>
-            <div className='flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gray-50'>
-              <h2 className='font-bold text-gray-800 text-lg'>
-                {isAdmin ? '📋 Recent Tickets' : '📋 My Tickets'}
-              </h2>
-              <Link 
-                to='/tickets/create' 
-                className='flex items-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2 rounded-lg hover:shadow-lg transform hover:scale-105 transition-all duration-300 font-medium'
-              >
-                <FiPlus /> New Ticket
-              </Link>
-            </div>
+          {/* Tabs */}
+          <div className='flex gap-2 mb-6 bg-white rounded-lg border-2 border-gray-200 p-1 shadow-lg'>
+            <button
+              onClick={() => setActiveTab('tickets')}
+              className={`flex-1 px-4 py-3 rounded text-sm font-bold transition-all ${
+                activeTab === 'tickets'
+                  ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              📋 All Tickets ({tickets.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('users')}
+              className={`flex-1 px-4 py-3 rounded text-sm font-bold transition-all ${
+                activeTab === 'users'
+                  ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              👥 Users ({users.length})
+            </button>
+          </div>
 
-            {tickets.length === 0 ? (
-              <div className='flex items-center justify-center h-48 text-gray-400'>
-                <div className='text-center'>
-                  <p className='text-lg'>No tickets found</p>
-                  <p className='text-sm mt-1'>
-                    {isAdmin ? 'No recent tickets yet' : 'Create your first ticket to get started'}
-                  </p>
+          {/* TICKETS TAB */}
+          {activeTab === 'tickets' && (
+            <div className='space-y-4'>
+              <div className='bg-white rounded-lg border-2 border-gray-200 p-4 shadow-lg'>
+                <div className='grid grid-cols-3 gap-4'>
+                  <div className='relative'>
+                    <FiSearch className='absolute left-3 top-1/2 -translate-y-1/2 text-gray-400' />
+                    <input
+                      type='text'
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      placeholder='Search tickets...'
+                      className='w-full border-2 border-gray-300 rounded px-10 py-2 text-sm focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-200 font-semibold text-gray-800'
+                    />
+                  </div>
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    className='border-2 border-gray-300 rounded px-4 py-2 text-sm focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-200 bg-white font-semibold text-gray-700'
+                  >
+                    <option value=''>All Status</option>
+                    <option value='open'>🔴 Pending</option>
+                    <option value='in_progress'>🟡 In Progress</option>
+                    <option value='resolved'>✅ Resolved</option>
+                  </select>
+                  <button
+                    onClick={fetchData}
+                    className='bg-gradient-to-r from-green-600 to-emerald-600 text-white px-4 py-2 rounded text-sm font-bold hover:shadow-lg'
+                  >
+                    🔄 Refresh
+                  </button>
                 </div>
               </div>
-            ) : (
-              <div className='overflow-x-auto'>
-                <table className='w-full text-sm'>
-                  <thead>
-                    <tr className='border-b border-gray-100 text-xs text-gray-500 bg-gray-50'>
-                      <td className='px-6 py-4 font-bold'>ID</td>
-                      <td className='px-6 py-4 font-bold'>Title</td>
-                      {isAdmin && <td className='px-6 py-4 font-bold'>User</td>}
-                      <td className='px-6 py-4 font-bold'>Priority</td>
-                      <td className='px-6 py-4 font-bold'>Status</td>
-                      <td className='px-6 py-4 font-bold'>Date</td>
-                    </tr>
-                  </thead>
-                  <tbody className='divide-y'>
-                    {tickets.map((t, index) => (
-                      <tr key={t.id} className='hover:bg-blue-50 transition-colors duration-200 animate-in fade-in duration-500' style={{animationDelay: `${index * 50}ms`}}>
-                        <td className='px-6 py-4 text-blue-600 font-bold'>#{t.id}</td>
-                        <td className='px-6 py-4 font-medium truncate max-w-xs'>{t.title}</td>
-                        {isAdmin && (
-                          <td className='px-6 py-4'>
-                            <div className='text-sm'>
-                              <p className='font-medium'>{t.creator?.name}</p>
-                              <p className='text-xs text-gray-500'>{t.creator?.email}</p>
-                            </div>
-                          </td>
-                        )}
-                        <td className='px-6 py-4'>
-                          <StatusBadge priority={t.priority} />
-                        </td>
-                        <td className='px-6 py-4'>
-                          <StatusBadge status={t.status} />
-                        </td>
-                        <td className='px-6 py-4 text-gray-500 text-xs'>
-                          {new Date(t.createdAt).toLocaleDateString('en-PK')}
-                        </td>
+
+              <div className='bg-white rounded-lg border-2 border-gray-200 overflow-hidden shadow-lg'>
+                {tickets.length === 0 ? (
+                  <div className='p-12 text-center text-gray-400'>
+                    <p className='text-lg font-semibold'>No tickets found</p>
+                  </div>
+                ) : (
+                  <div className='overflow-x-auto'>
+                    <table className='w-full text-sm'>
+                      <thead>
+                        <tr className='bg-gradient-to-r from-gray-100 to-gray-50 border-b-2 border-gray-300'>
+                          <th className='px-6 py-4 text-left font-bold text-gray-800'>ID</th>
+                          <th className='px-6 py-4 text-left font-bold text-gray-800'>Title</th>
+                          <th className='px-6 py-4 text-left font-bold text-gray-800'>User</th>
+                          <th className='px-6 py-4 text-left font-bold text-gray-800'>Priority</th>
+                          <th className='px-6 py-4 text-left font-bold text-gray-800'>Current Status</th>
+                          <th className='px-6 py-4 text-left font-bold text-gray-800'>Change To</th>
+                          <th className='px-6 py-4 text-left font-bold text-gray-800'>Action</th>
+                          <th className='px-6 py-4 text-left font-bold text-gray-800'>Date</th>
+                        </tr>
+                      </thead>
+                      <tbody className='divide-y'>
+                        {tickets.map((t) => (
+                          <tr key={t.id} className='hover:bg-green-50 transition-colors'>
+                            <td className='px-6 py-4 font-bold text-green-600'>#{t.id}</td>
+                            <td className='px-6 py-4 font-medium text-gray-800'>{t.title}</td>
+                            <td className='px-6 py-4'>
+                              <div className='text-sm'>
+                                <p className='font-bold text-gray-800'>{t.creator?.name}</p>
+                                <p className='text-xs text-gray-500'>{t.creator?.email}</p>
+                              </div>
+                            </td>
+                            <td className='px-6 py-4'>
+                              <StatusBadge priority={t.priority} />
+                            </td>
+                            <td className='px-6 py-4'>
+                              <StatusBadge status={t.status} />
+                            </td>
+                            <td className='px-6 py-4'>
+                              {editingId === t.id ? (
+                                <select
+                                  value={newStatus}
+                                  onChange={(e) => setNewStatus(e.target.value)}
+                                  className='border-2 border-green-500 rounded px-2 py-1 text-xs bg-white focus:outline-none font-bold text-gray-800'
+                                >
+                                  <option value=''>Select Status</option>
+                                  <option value='open'>🔴 Pending</option>
+                                  <option value='in_progress'>🟡 In Progress</option>
+                                  <option value='resolved'>✅ Resolved</option>
+                                  <option value='closed'>⚫ Closed</option>
+                                </select>
+                              ) : (
+                                <span className='text-gray-500 text-xs font-bold'>-</span>
+                              )}
+                            </td>
+                            <td className='px-6 py-4'>
+                              {editingId === t.id ? (
+                                <div className='flex gap-2'>
+                                  <button
+                                    onClick={() => handleStatusChange(t.id)}
+                                    className='bg-green-600 text-white text-xs px-3 py-1 rounded hover:bg-green-700 font-bold transition-all'
+                                  >
+                                    ✅ Save
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      setEditingId(null)
+                                      setNewStatus('')
+                                    }}
+                                    className='bg-gray-400 text-white text-xs px-3 py-1 rounded hover:bg-gray-500 font-bold transition-all'
+                                  >
+                                    ❌ Cancel
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={() => {
+                                    setEditingId(t.id)
+                                    setNewStatus(t.status)
+                                  }}
+                                  className='flex items-center gap-1 bg-blue-100 text-blue-700 text-xs px-3 py-1 rounded hover:bg-blue-200 font-bold transition-all'
+                                >
+                                  <FiEdit2 size={12} /> Edit
+                                </button>
+                              )}
+                            </td>
+                            <td className='px-6 py-4 text-xs text-gray-500'>
+                              {new Date(t.createdAt).toLocaleDateString('en-PK')}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* USERS TAB */}
+          {activeTab === 'users' && (
+            <div className='bg-white rounded-lg border-2 border-gray-200 overflow-hidden shadow-lg'>
+              {users.length === 0 ? (
+                <div className='p-12 text-center text-gray-400'>
+                  <p className='text-lg font-semibold'>No users found</p>
+                </div>
+              ) : (
+                <div className='overflow-x-auto'>
+                  <table className='w-full text-sm'>
+                    <thead>
+                      <tr className='bg-gradient-to-r from-gray-100 to-gray-50 border-b-2 border-gray-300'>
+                        <th className='px-6 py-4 text-left font-bold text-gray-800'>ID</th>
+                        <th className='px-6 py-4 text-left font-bold text-gray-800'>Name</th>
+                        <th className='px-6 py-4 text-left font-bold text-gray-800'>Email</th>
+                        <th className='px-6 py-4 text-left font-bold text-gray-800'>Role</th>
+                        <th className='px-6 py-4 text-left font-bold text-gray-800'>Status</th>
+                        <th className='px-6 py-4 text-left font-bold text-gray-800'>Joined</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-
-          {/* Summary Stats */}
-          <div className='grid grid-cols-3 gap-6 mt-8'>
-            <div className='bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl border border-blue-200 p-6 shadow-lg hover:shadow-xl transition-all duration-300 animate-in fade-in slide-in-from-bottom duration-700'>
-              <h3 className='text-sm text-blue-700 mb-4 font-bold'>📊 Status Breakdown</h3>
-              <div className='space-y-3'>
-                <div className='flex justify-between items-center pb-2 border-b border-blue-200'>
-                  <span className='text-sm text-blue-600'>🔴 Pending</span>
-                  <span className='font-bold text-lg text-red-600'>
-                    {isAdmin ? stats?.openTickets || 0 : stats?.myOpen || 0}
-                  </span>
+                    </thead>
+                    <tbody className='divide-y'>
+                      {users.map((u) => (
+                        <tr key={u.id} className='hover:bg-green-50 transition-colors'>
+                          <td className='px-6 py-4 font-bold text-green-600'>#{u.id}</td>
+                          <td className='px-6 py-4 font-bold text-gray-800'>{u.name}</td>
+                          <td className='px-6 py-4 text-gray-600'>{u.email}</td>
+                          <td className='px-6 py-4'>
+                            <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                              u.role === 'admin' ? 'bg-red-100 text-red-700' :
+                              u.role === 'agent' ? 'bg-blue-100 text-blue-700' :
+                              'bg-green-100 text-green-700'
+                            }`}>
+                              {u.role === 'admin' ? '🔐 Admin' : u.role === 'agent' ? '👨‍💼 Agent' : '👤 User'}
+                            </span>
+                          </td>
+                          <td className='px-6 py-4'>
+                            <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                              u.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
+                            }`}>
+                              {u.is_active ? '✅ Active' : '⚫ Inactive'}
+                            </span>
+                          </td>
+                          <td className='px-6 py-4 text-xs text-gray-500'>
+                            {new Date(u.createdAt).toLocaleDateString('en-PK')}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-                <div className='flex justify-between items-center pb-2 border-b border-blue-200'>
-                  <span className='text-sm text-blue-600'>🟡 In Progress</span>
-                  <span className='font-bold text-lg text-yellow-600'>
-                    {isAdmin ? stats?.inProgressTickets || 0 : stats?.myInProgress || 0}
-                  </span>
-                </div>
-                <div className='flex justify-between items-center'>
-                  <span className='text-sm text-blue-600'>✅ Resolved</span>
-                  <span className='font-bold text-lg text-green-600'>
-                    {isAdmin ? stats?.resolvedTickets || 0 : stats?.myResolved || 0}
-                  </span>
-                </div>
-              </div>
+              )}
             </div>
-
-            <div className='bg-gradient-to-br from-green-50 to-green-100 rounded-xl border border-green-200 p-6 shadow-lg hover:shadow-xl transition-all duration-300 animate-in fade-in slide-in-from-bottom duration-700 [animation-delay:100ms]'>
-              <h3 className='text-sm text-green-700 mb-4 font-bold'>📈 Performance</h3>
-              <div className='space-y-3'>
-                <div className='flex justify-between items-center pb-2 border-b border-green-200'>
-                  <span className='text-sm text-green-600'>Total Tickets</span>
-                  <span className='font-bold text-lg'>
-                    {isAdmin ? stats?.totalTickets || 0 : stats?.myTotal || 0}
-                  </span>
-                </div>
-                <div className='flex justify-between items-center pb-2 border-b border-green-200'>
-                  <span className='text-sm text-green-600'>Completion %</span>
-                  <span className='font-bold text-lg text-green-600'>
-                    {stats?.totalTickets || stats?.myTotal ? 
-                      Math.round(
-                        ((isAdmin ? stats.resolvedTickets : stats?.myResolved) / 
-                         (isAdmin ? stats.totalTickets : stats?.myTotal)) * 100
-                      ) : 0}%
-                  </span>
-                </div>
-                <div className='flex justify-between items-center'>
-                  <span className='text-sm text-green-600'>Avg Time</span>
-                  <span className='font-bold text-lg'>~2 days</span>
-                </div>
-              </div>
-            </div>
-
-            <div className='bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl border border-purple-200 p-6 shadow-lg hover:shadow-xl transition-all duration-300 animate-in fade-in slide-in-from-bottom duration-700 [animation-delay:200ms]'>
-              <h3 className='text-sm text-purple-700 mb-4 font-bold'>👤 Account Info</h3>
-              <div className='space-y-3'>
-                <div className='pb-2 border-b border-purple-200'>
-                  <p className='text-xs text-purple-600 mb-1'>Name</p>
-                  <p className='text-sm font-bold text-purple-900'>{user?.name}</p>
-                </div>
-                <div className='pb-2 border-b border-purple-200'>
-                  <p className='text-xs text-purple-600 mb-1'>Email</p>
-                  <p className='text-sm font-bold text-purple-900'>{user?.email}</p>
-                </div>
-                <div>
-                  <p className='text-xs text-purple-600 mb-1'>Role</p>
-                  <span className={`inline-block text-xs font-bold px-3 py-1 rounded-full ${
-                    user?.role === 'admin' ? 'bg-red-100 text-red-700' :
-                    user?.role === 'agent' ? 'bg-blue-100 text-blue-700' :
-                    'bg-green-100 text-green-700'
-                  }`}>
-                    {user?.role?.toUpperCase()}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
+          )}
         </div>
       </div>
-
-      <style jsx>{`
-        @keyframes slideInFromLeft {
-          from {
-            opacity: 0;
-            transform: translateX(-20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0);
-          }
-        }
-        @keyframes slideInFromRight {
-          from {
-            opacity: 0;
-            transform: translateX(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0);
-          }
-        }
-        .animate-in {
-          animation: fadeIn 0.5s ease-out forwards;
-        }
-        .slide-in-from-left {
-          animation: slideInFromLeft 0.7s ease-out forwards;
-        }
-        .slide-in-from-right {
-          animation: slideInFromRight 0.7s ease-out forwards;
-        }
-      `}</style>
     </div>
   )
 }
 
-export default Dashboard
+export default SuperPanel
